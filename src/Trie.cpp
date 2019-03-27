@@ -2,15 +2,34 @@
 
 #include "Trie.h"
 
-#define LEAF_BIT (0x1 << 31)
-#define MASK_A (0x1 << 25)
+#define LEAF_BIT (1u << 31)
+#define MASK_A (1u << 25)
+#define BUFFERINC (sizeof(uint32_t))
+#define BUFFERMAX (BUFFERINC * 32)
 
 using std::ios;
+
+TrieNode::TrieNode() {
+	for (int i = 0; i < 26; i++) {
+		children[i] = NULL;
+	}
+	isLeaf = false;
+}
 
 TrieNode::~TrieNode() {
 	for (int i = 0; i < 26; i++) {
 		delete children[i];
+		children[i] = NULL;
 	}
+}
+
+LinkedTrieNode::LinkedTrieNode() {
+	node = NULL;
+	next = NULL;
+}
+
+LinkedTrieNode::~LinkedTrieNode() {
+	// don't delete node or next
 }
 
 Trie::Trie() {
@@ -20,6 +39,7 @@ Trie::Trie() {
 
 Trie::~Trie() {
 	delete root;
+	root = NULL;
 }
 
 TrieNode* Trie::getRoot() {
@@ -28,7 +48,7 @@ TrieNode* Trie::getRoot() {
 
 void Trie::clearTrie() {
 	delete root;
-	root = createNode();
+	root = new TrieNode();
 }
 
 void Trie::insert(const char* key, int len) {
@@ -38,7 +58,7 @@ void Trie::insert(const char* key, int len) {
 		int index = charToIndex(key[i]);
 
 		if (child->children[index] == NULL) {
-			child->children[index] = createNode();
+			child->children[index] = new TrieNode();
 		}
 		child = child->children[index];
 	}
@@ -46,19 +66,10 @@ void Trie::insert(const char* key, int len) {
 	child->isLeaf = true;
 }
 
-TrieNode* Trie::createNode() {
-	TrieNode* newNode = new TrieNode();
-	for (int i = 0; i < 26; i++) {
-		newNode->children[i] = NULL;
-	}
-	newNode->isLeaf = false;
 
-	return newNode;
-}
-
-uint32_t Trie::nodeToUint32(TrieNode* node, LinkedTrieNode* & tail) {
-	uint32_t output = 0;
-	if (node == NULL) { return output; }
+LinkedTrieNode* Trie::nodeToUint32(uint32_t& output, TrieNode* node, LinkedTrieNode* tail) {
+	output = 0;
+	if (node == NULL) { return tail; }
 
 	if (node->isLeaf) { output |= LEAF_BIT; }
 	uint32_t indexMask = MASK_A;
@@ -69,8 +80,8 @@ uint32_t Trie::nodeToUint32(TrieNode* node, LinkedTrieNode* & tail) {
 			output |= indexMask;
 			// add node to end of processing list
 			tail->next = new LinkedTrieNode();
-			tail->next->node = node->children[i];
 			tail = tail->next;
+			tail->node = node->children[i];
 			tail->next = NULL;
 		} else {
 			printf(".");
@@ -78,14 +89,12 @@ uint32_t Trie::nodeToUint32(TrieNode* node, LinkedTrieNode* & tail) {
 	}
 	printf("' (0x%08x)\n", output);
 
-	return output;
+	return tail;
 }
 
 void Trie::serialize(Trie& trie, string fileName) {
-	int bufferInc = sizeof(uint32_t);
-	int bufferMax = bufferInc * 32;
 	int bufferSize = 0;
-	char buffer[bufferMax] = {};
+	char buffer[BUFFERMAX];
 	ofstream file;
 	file.open(fileName, ios::out | ios::binary | ios::trunc);
 
@@ -97,13 +106,13 @@ void Trie::serialize(Trie& trie, string fileName) {
 	head->node = trie.getRoot();
 
 	while (head != NULL) {
-		mask = nodeToUint32(head->node, tail);
+		tail = nodeToUint32(mask, head->node, tail);
 		// write mask to char buffer
-		std::memcpy(&buffer[bufferSize], &mask, bufferInc);
-		bufferSize += bufferInc;
+		std::memcpy(&buffer[bufferSize], &mask, BUFFERINC);
+		bufferSize += BUFFERINC;
 		// flush to file if needed
-		if (bufferSize >= bufferMax) {
-			file.write(buffer, bufferMax);
+		if (bufferSize >= BUFFERMAX) {
+			file.write(buffer, BUFFERMAX);
 			bufferSize = 0;
 		}
 
@@ -113,8 +122,6 @@ void Trie::serialize(Trie& trie, string fileName) {
 		delete tmp;
 	}
 
-	delete tail;
-
 	// flush remaining bytes if needed
 	if (bufferSize > 0) {
 		file.write(buffer, bufferSize);
@@ -123,14 +130,17 @@ void Trie::serialize(Trie& trie, string fileName) {
 	file.close();
 }
 
-void Trie::uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* & tail) {
+LinkedTrieNode* Trie::uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* tail) {
 	node->isLeaf = input & LEAF_BIT;
+	printf("Node mask: '%d.....", node->isLeaf ? 1 : 0);
 
 	// return if there are no children
-	if ((input & ~LEAF_BIT) == 0) { return; }
+	if ((input & ~LEAF_BIT) == 0) {
+		printf("..........................' (0x%08x)\n", input);
+		return tail;
+	}
 
 	uint32_t indexMask = MASK_A;
-	printf("Node mask: '%d.....", node->isLeaf ? 1 : 0);
 	for (int i = 0; i < 26; i++, indexMask >>= 1) {
 		if (input & indexMask) {
 			printf("%c", indexToChar(i)); 
@@ -138,20 +148,21 @@ void Trie::uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* & tail) 
 			// add node to end of processing list
 			tail->next = new LinkedTrieNode();
 			tail = tail->next;
+			tail->node = node->children[i];
 			tail->next = NULL;
 		} else {
 			printf(".");
 		}
 	}
 	printf("' (0x%08x)\n", input);
+
+	return tail;
 }
 
 bool Trie::deserialize(Trie& trie, string fileName) {
-	int bufferInc = sizeof(uint32_t);
-	int bufferMax = bufferInc * 32;
-	int bufferSize = bufferMax;
+	int bufferSize = BUFFERMAX;
 	int bufferPos = bufferSize;
-	char buffer[bufferMax] = {};
+	char buffer[BUFFERMAX] = {};
 	ifstream file;
 	file.open(fileName, ios::in | ios::binary);
 
@@ -174,27 +185,36 @@ bool Trie::deserialize(Trie& trie, string fileName) {
 		}
 
 		if (bufferPos >= bufferSize) {
-			file.read(buffer, bufferMax);
+			file.read(buffer, BUFFERMAX);
 			if (!file) {
 				bufferSize = file.gcount();
-				file.clear();
 			}
 			bufferPos = 0;
 		}
 		
-		std::memcpy(&mask, &buffer[bufferPos], bufferInc);
-		bufferPos += bufferInc;
-		uint32ToNode(mask, head->node, tail);
+		std::memcpy(&mask, &buffer[bufferPos], BUFFERINC);
+		bufferPos += BUFFERINC;
+		tail = uint32ToNode(mask, head->node, tail);
 
 		// advance
-		// calling delete will delete the TrieNode which will cause a segfault
+		tmp = head;
 		head = head->next;
+		delete tmp;
 	}
 
 	if (head != NULL) {
 		printf("Trie corrupt: node list is longer than file\n");
 		//TODO: create trie from dictionary
+
+		// clean up remaining nodes in processing list
+		do {
+			tmp = head;
+			head = head->next;
+			delete tmp;
+		} while (tmp != NULL);
+		// clear partial trie
 		trie.clearTrie();
+
 		return false;
 	}
 
@@ -223,6 +243,19 @@ bool Trie::trieCompare(Trie& trie) {
 			printf("currentHead->isLeaf = %s and currentStaticHead->isLeaf = %s\n",
 				currentHead->isLeaf ? "TRUE" : "FALSE",
 				currentStaticHead->isLeaf ? "TRUE" : "FALSE");
+
+			// clean up processing lists
+			do {
+				tmpHead = head;
+				head = head->next;
+				delete tmpHead;
+			} while (tmpHead != NULL);
+			do {
+				tmpHead = staticHead;
+				staticHead = staticHead->next;
+				delete tmpHead;
+			} while (tmpHead != NULL);
+
 			return false;
 		}
 

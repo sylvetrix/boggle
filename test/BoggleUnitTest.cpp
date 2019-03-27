@@ -10,13 +10,15 @@
 #define TEST_STATICTRIE "TestSerializerStatic.trie"
 #define TEST_WORDCOUNT 7
 #define TEST_NODECOUNT 23
+#define BUFFERINC (sizeof(uint32_t))
+#define BUFFERSIZE (BUFFERINC * TEST_NODECOUNT)
 
 using std::ios;
 using std::ifstream;
 using std::ofstream;
 
 // serializer word list
-string words[TEST_WORDCOUNT] = {
+static string words[TEST_WORDCOUNT] = {
 	"CHOIR",
 	"COINCIDE",
 	"CHORUS",
@@ -25,7 +27,7 @@ string words[TEST_WORDCOUNT] = {
 	"ANTSY",
 	"ANTS" };
 // serializer file bytes
-uint32_t fileUints[TEST_NODECOUNT] = {
+static uint32_t fileUints[TEST_NODECOUNT] = {
 	0x02800000,	// 0AC
 	0x00001000,	// 0N
 	0x00040800,	// 0HO
@@ -66,23 +68,21 @@ int main(int argc, char** argv) {
 	bool ret = testSerializer(TEST_TRIE, TEST_STATICTRIE);
 	printf("Serializer test: %s\n", ret ? "PASS" : "FAIL");
 	printf("Testing deserializer\n");
-	ret = testDeserializer(TEST_TRIE);
+	ret = testDeserializer(TEST_STATICTRIE);
 	printf("Deserializer test: %s\n", ret ? "PASS" : "FAIL");
 }
 
 bool testSerializer(const char* testFileName, const char* testStaticFileName) {
-	int bufferInc = sizeof(uint32_t);
-	int bufferSize = bufferInc * TEST_NODECOUNT;
-	char buffer[bufferSize] = {};
+	char buffer[BUFFERSIZE];
 
 	// create test static trie file
 	// creating test static file each time makes endianness irrelevant
 	ofstream file;
 	file.open(testStaticFileName, ios::out | ios::binary | ios::trunc);
 	for (int i = 0; i < TEST_NODECOUNT; i++) {
-		std::memcpy(&buffer[i*bufferInc], &fileUints[i], bufferInc);
+		std::memcpy(&buffer[i*BUFFERINC], &fileUints[i], BUFFERINC);
 	}
-	file.write(buffer, bufferSize);
+	file.write(buffer, BUFFERSIZE);
 	file.close();
 
 	// create trie
@@ -121,7 +121,19 @@ bool testSerializer(const char* testFileName, const char* testStaticFileName) {
 	return ret;
 }
 
-bool testDeserializer(const char* testFileName) {
+bool testDeserializer(const char* testStaticFileName) {
+	char buffer[BUFFERSIZE];
+
+	// create test static trie file
+	// creating test static file each time makes endianness irrelevant
+	ofstream file;
+	file.open(testStaticFileName, ios::out | ios::binary | ios::trunc);
+	for (int i = 0; i < TEST_NODECOUNT; i++) {
+		std::memcpy(&buffer[i*BUFFERINC], &fileUints[i], BUFFERINC);
+	}
+	file.write(buffer, BUFFERSIZE);
+	file.close();
+
 	// create static trie
 	Trie testStaticTrie = Trie();
 	for (int i = 0; i < TEST_WORDCOUNT; i++) {
@@ -130,7 +142,7 @@ bool testDeserializer(const char* testFileName) {
 
 	// deserialize trie from file
 	Trie testTrie = Trie();
-	if (!Trie::deserialize(testTrie, testFileName)) { return false; }
+	if (!Trie::deserialize(testTrie, testStaticFileName)) { return false; }
 
 	return testTrie.trieCompare(testStaticTrie);
 }

@@ -15,12 +15,17 @@ using std::string;
 struct TrieNode {
 	TrieNode* children[26];
 	bool isLeaf;
+
+	TrieNode();
 	~TrieNode();
 };
 
 struct LinkedTrieNode {
 	TrieNode* node;
 	LinkedTrieNode* next;
+
+	LinkedTrieNode();
+	~LinkedTrieNode();
 };
 
 class Trie {
@@ -31,15 +36,14 @@ class Trie {
 		TrieNode* getRoot();
 		void insert(const char* key, int len);
 		bool trieCompare(Trie& trie);
-		static TrieNode* createNode();
 		static void serialize(Trie& dict, string fileName);
 		static bool deserialize(Trie& dict, string fileName);
 
 	private:
 		TrieNode* root;
 
-		static uint32_t nodeToUint32(TrieNode* node, LinkedTrieNode* & tail);
-		static void uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* & tail);
+		static LinkedTrieNode* nodeToUint32(uint32_t& output, TrieNode* node, LinkedTrieNode* tail);
+		static LinkedTrieNode* uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* tail);
 };
 
 #endif	// TRIE_H_
