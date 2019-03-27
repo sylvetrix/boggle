@@ -236,7 +236,7 @@ bool Trie::trieCompare(Trie& trie) {
 	nodesInLevel = 1;
 
 	while ((head != NULL) && (staticHead != NULL)) {
-		printf("Processing level %d: '", 0);
+		printf("Processing level %d: '", level);
 		currentHead = head->node;
 		currentStaticHead = staticHead->node;
 		if (currentHead->isLeaf != currentStaticHead->isLeaf) {
@@ -285,7 +285,7 @@ bool Trie::trieCompare(Trie& trie) {
 			}
 		}
 
-		printf("\n");
+		printf("'\n");
 
 		// advance processing lists
 		tmpHead = head;
