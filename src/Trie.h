@@ -36,8 +36,8 @@ class Trie {
 		TrieNode* getRoot();
 		void insert(const char* key, int len);
 		bool trieCompare(Trie& trie);
-		static void serialize(Trie& dict, string fileName);
-		static bool deserialize(Trie& dict, string fileName);
+		bool serialize(const char* fileName);
+		bool deserialize(const char* fileName);
 
 	private:
 		TrieNode* root;

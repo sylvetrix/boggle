@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <time.h>
 #include <typeinfo>
@@ -20,6 +21,7 @@ Boggle::Boggle() {
 	clearBoard();
 	clearVisited();
 	loadDice();
+	loadDict();
 	//TODO: deserialize/create dictionary trie
 }
 
@@ -131,6 +133,24 @@ void Boggle::loadBoard() {
 			board[i][j] = dice[i * 5 + j][rand() % 6];
 		}
 	}
+}
+
+void Boggle::loadDict() {
+	bool ret = dictionary.deserialize(TRIE_FILE);
+	if (!ret) {
+		printf("Trie deserializion failed. Loading trie from dictionary.\n");
+		string word;
+		ifstream file;
+		file.open(DICT_FILE);
+		if (file.is_open()) {
+			while (getline(file, word)) {
+				dictionary.insert(word.c_str(), word.length());
+			}
+			file.close();
+
+			dictionary.serialize(TRIE_FILE);
+		}
+	}	
 }
 
 void Boggle::newGame() {

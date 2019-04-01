@@ -27,6 +27,7 @@ class Boggle {
 		bool isSafe(int i, int j);
 		void loadBoard();
 		void loadDice();
+		void loadDict();
 		void searchWord(TrieNode* root, int i, int j, string str);
 };
 

@@ -92,7 +92,7 @@ bool testSerializer(const char* testFileName, const char* testStaticFileName) {
 	}
 
 	// serialize testTrie to file
-	Trie::serialize(testTrie, testFileName);
+	testTrie.serialize(testFileName);
 
 	// compare serialized trie to static trie
 	ifstream fileTrie, fileStaticTrie;
@@ -142,7 +142,7 @@ bool testDeserializer(const char* testStaticFileName) {
 
 	// deserialize trie from file
 	Trie testTrie = Trie();
-	if (!Trie::deserialize(testTrie, testStaticFileName)) { return false; }
+	if (!testTrie.deserialize(testStaticFileName)) { return false; }
 
 	return testTrie.trieCompare(testStaticTrie);
 }
