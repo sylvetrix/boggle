@@ -24,8 +24,27 @@ struct LinkedTrieNode {
 	TrieNode* node;
 	LinkedTrieNode* next;
 
-	LinkedTrieNode();
-	~LinkedTrieNode();
+	LinkedTrieNode() {
+		node = NULL;
+		next = NULL;
+	}
+	~LinkedTrieNode() { }
+};
+
+struct TrieInfo {
+	uint64_t letterCount;
+	uint64_t wordCount;
+	uint64_t trieSize;
+
+	TrieInfo() : letterCount(0), wordCount(0), trieSize(0) { }
+
+	TrieInfo& operator+=(const TrieInfo& info) {
+		letterCount += info.letterCount;
+		wordCount += info.wordCount;
+		trieSize += info.trieSize;
+
+		return *this;
+	}
 };
 
 class Trie {
@@ -38,10 +57,12 @@ class Trie {
 		bool trieCompare(Trie& trie);
 		bool serialize(const char* fileName);
 		bool deserialize(const char* fileName);
+		TrieInfo getTrieInfo();
 
 	private:
 		TrieNode* root;
 
+		TrieInfo getTrieNodeInfo(TrieNode* node);
 		static LinkedTrieNode* nodeToUint32(uint32_t& output, TrieNode* node, LinkedTrieNode* tail);
 		static LinkedTrieNode* uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* tail);
 };

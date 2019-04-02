@@ -8,8 +8,10 @@
 
 #define TEST_TRIE "TestSerializer.trie"
 #define TEST_STATICTRIE "TestSerializerStatic.trie"
-#define TEST_WORDCOUNT 7
-#define TEST_NODECOUNT 23
+#define TEST_LETTERCOUNT 22u
+#define TEST_WORDCOUNT 7u
+#define TEST_NODECOUNT 23u
+#define TEST_TRIESIZEBYTES 4976u
 #define BUFFERINC (sizeof(uint32_t))
 #define BUFFERSIZE (BUFFERINC * TEST_NODECOUNT)
 
@@ -58,18 +60,24 @@ static uint32_t fileUints[TEST_NODECOUNT] = {
 // test function forward declarations
 bool testSerializer(const char* testFileName, const char* testStaticFileName);
 bool testDeserializer(const char* testFileName);
+bool testTrieInfo();
 
 int main(int argc, char** argv) {
-	/*Boggle boggle = Boggle();
-	boggle.newGame();
-	boggle.printBoard(std::cout);*/
-
 	printf("Testing serializer\n");
 	bool ret = testSerializer(TEST_TRIE, TEST_STATICTRIE);
 	printf("Serializer test: %s\n", ret ? "PASS" : "FAIL");
+
 	printf("Testing deserializer\n");
 	ret = testDeserializer(TEST_STATICTRIE);
 	printf("Deserializer test: %s\n", ret ? "PASS" : "FAIL");
+
+	printf("Testing trie info\n");
+	ret = testTrieInfo();
+	printf("Trie info test: %s\n", ret ? "PASS" : "FAIL");
+
+	/*Boggle boggle = Boggle();
+	boggle.newGame();
+	boggle.printBoard(std::cout);*/
 }
 
 bool testSerializer(const char* testFileName, const char* testStaticFileName) {
@@ -145,4 +153,24 @@ bool testDeserializer(const char* testStaticFileName) {
 	if (!testTrie.deserialize(testStaticFileName)) { return false; }
 
 	return testTrie.trieCompare(testStaticTrie);
+}
+
+bool testTrieInfo() {
+	bool ret = true;
+
+	// create static trie
+	Trie testStaticTrie = Trie();
+	for (int i = 0; i < TEST_WORDCOUNT; i++) {
+		testStaticTrie.insert(words[i].c_str(), words[i].length());
+	}
+
+	TrieInfo info = testStaticTrie.getTrieInfo();
+	if (TEST_LETTERCOUNT != info.letterCount) { ret = false; }
+	printf("Trie letter count: expected = %u, actual = %lu\n", TEST_LETTERCOUNT, info.letterCount);
+	if (TEST_WORDCOUNT != info.wordCount) { ret = false; }
+	printf("Trie word count: expected = %u, actual = %lu\n", TEST_WORDCOUNT, info.wordCount);
+	if (TEST_TRIESIZEBYTES != info.trieSize) { ret = false; }
+	printf("Trie size: expected = %u B, actual = %lu B\n", TEST_TRIESIZEBYTES, info.trieSize);
+
+	return ret;
 }

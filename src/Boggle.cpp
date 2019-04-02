@@ -22,7 +22,6 @@ Boggle::Boggle() {
 	clearVisited();
 	loadDice();
 	loadDict();
-	//TODO: deserialize/create dictionary trie
 }
 
 Boggle::~Boggle() {

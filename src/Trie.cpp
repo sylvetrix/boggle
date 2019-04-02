@@ -23,15 +23,6 @@ TrieNode::~TrieNode() {
 	}
 }
 
-LinkedTrieNode::LinkedTrieNode() {
-	node = NULL;
-	next = NULL;
-}
-
-LinkedTrieNode::~LinkedTrieNode() {
-	// don't delete node or next
-}
-
 Trie::Trie() {
 	root = NULL;
 	clearTrie();
@@ -322,4 +313,29 @@ bool Trie::trieCompare(Trie& trie) {
 	}
 
 	return true;
+}
+
+TrieInfo Trie::getTrieInfo() {
+	TrieInfo info = TrieInfo();
+	info.trieSize += sizeof(*this);
+	if (root == NULL) { return info; }
+
+	info += getTrieNodeInfo(root);
+
+	return info;
+}
+
+TrieInfo Trie::getTrieNodeInfo(TrieNode* node) {
+	TrieInfo info = TrieInfo();
+	info.trieSize += sizeof(*node);
+	if (node->isLeaf) { info.wordCount++; }
+
+	for (int i = 0; i < 26; i++) {
+		if (node->children[i] != NULL) {
+			info.letterCount++;
+			info += getTrieNodeInfo(node->children[i]);
+		}
+	}
+
+	return info;
 }
