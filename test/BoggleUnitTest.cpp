@@ -67,16 +67,18 @@ int main(int argc, char** argv) {
 	bool ret = testSerializer(TEST_TRIE, TEST_STATICTRIE);
 	printf("Serializer test: %s\n", ret ? "PASS" : "FAIL");
 
-	printf("Testing deserializer\n");
+	printf("\nTesting deserializer\n");
 	ret = testDeserializer(TEST_STATICTRIE);
 	printf("Deserializer test: %s\n", ret ? "PASS" : "FAIL");
 
-	printf("Testing trie info\n");
+	printf("\nTesting trie info\n");
 	ret = testTrieInfo();
 	printf("Trie info test: %s\n", ret ? "PASS" : "FAIL");
 
-	/*Boggle boggle = Boggle();
-	boggle.newGame();
+	Boggle boggle = Boggle();
+	TrieInfo info = boggle.getTrieInfo();
+	printf("\nBoggle dictionary trie:\n    Word count = %lu\n    Letter count = %lu\n    Trie size (bytes) = %lu B\n", info.wordCount, info.letterCount, info.trieSize);
+	/*boggle.newGame();
 	boggle.printBoard(std::cout);*/
 }
 

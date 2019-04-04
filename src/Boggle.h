@@ -13,7 +13,7 @@ class Boggle {
 		~Boggle();
 		void newGame();
 		void printBoard(std::ostream&);
-		TrieInfo getTrieSize() { return dictionary.getTrieInfo(); }
+		TrieInfo getTrieInfo() { return dictionary.getTrieInfo(); }
 
 	private:
 		char board[5][5] = { {}, {}, {}, {}, {} };

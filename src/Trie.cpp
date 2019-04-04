@@ -17,6 +17,7 @@ TrieNode::TrieNode() {
 }
 
 TrieNode::~TrieNode() {
+	printf("Destructing TrieNode\n");
 	for (int i = 0; i < 26; i++) {
 		delete children[i];
 		children[i] = NULL;
