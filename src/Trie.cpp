@@ -44,7 +44,6 @@ TrieNode* Trie::getRoot() {
 }
 
 void Trie::clearTrie() {
-	delete root;
 	root = new TrieNode();
 }
 
