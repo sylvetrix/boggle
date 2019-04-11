@@ -1,5 +1,7 @@
 #include <cstring>
+#include <string>
 
+#include "Logger.h"
 #include "Trie.h"
 
 #define LEAF_BIT (1u << 31)
@@ -10,6 +12,10 @@
 using std::ios;
 
 TrieNode::TrieNode() {
+#if DEBUG
+	id = createTrieNodeId();
+	LOG_DEBUG("Constructing TrieNode [%lu]", this->id);
+#endif
 	for (int i = 0; i < 26; i++) {
 		children[i] = NULL;
 	}
@@ -17,7 +23,7 @@ TrieNode::TrieNode() {
 }
 
 TrieNode::~TrieNode() {
-	printf("Destructing TrieNode\n");
+	LOG_DEBUG("Destructing TrieNode [%lu]", this->id);
 	for (int i = 0; i < 26; i++) {
 		delete children[i];
 		children[i] = NULL;
@@ -25,8 +31,7 @@ TrieNode::~TrieNode() {
 }
 
 Trie::Trie() {
-	root = NULL;
-	clearTrie();
+	root = new TrieNode();
 }
 
 Trie::~Trie() {
@@ -58,41 +63,57 @@ void Trie::insert(const char* key, int len) {
 	child->isLeaf = true;
 }
 
-
 LinkedTrieNode* Trie::nodeToUint32(uint32_t& output, TrieNode* node, LinkedTrieNode* tail) {
 	output = 0;
 	if (node == NULL) { return tail; }
 
+#if DEBUG
+	char logBuffer[59];
+	snprintf(logBuffer, 59, "Node mask: 'L...............................' (0x00000000)");
+	int cx = 12;	// "Node mask: '"
+#endif
+
 	if (node->isLeaf) { output |= LEAF_BIT; }
 	uint32_t indexMask = MASK_A;
-	printf("Node mask: '%d.....", node->isLeaf ? 1 : 0);
+#if DEBUG
+	logBuffer[cx] = node->isLeaf ? '1' : '0';
+	cx += 6;	// leaf + '.....'
+#endif
 	for (int i = 0; i < 26; i++, indexMask >>= 1) {
 		if (node->children[i] != NULL) {
-			printf("%c", indexToChar(i)); 
+#if DEBUG
+			logBuffer[cx] = indexToChar(i);
+#endif
 			output |= indexMask;
 			// add node to end of processing list
 			tail->next = new LinkedTrieNode();
 			tail = tail->next;
 			tail->node = node->children[i];
 			tail->next = NULL;
-		} else {
-			printf(".");
 		}
+#if DEBUG
+		cx++;
 	}
-	printf("' (0x%08x)\n", output);
+
+	cx += 5;	// "' (0x"
+	snprintf(logBuffer + cx, 59 - cx, "%08x)", output);
+	LOG_DEBUG("%s", logBuffer);
+#else
+	}
+#endif
 
 	return tail;
 }
 
 bool Trie::serialize(const char* fileName) {
-	printf("Serializing to trie file '%s'.\n", fileName);
+	LOG_INFO("Serializing to trie file '%s'.", fileName);
 	int bufferSize = 0;
 	char buffer[BUFFERMAX];
 	ofstream file;
 	file.open(fileName, ios::out | ios::binary | ios::trunc);
 
 	if (!file.is_open()) {
-		printf("Unable to open trie file for serialization.\n");
+		LOG_INFO("Unable to open trie file for serialization.");
 		return false;
 	}
 
@@ -118,6 +139,7 @@ bool Trie::serialize(const char* fileName) {
 		tmp = head;
 		head = head->next;
 		delete tmp;
+		tmp = NULL;
 	}
 
 	// flush remaining bytes if needed
@@ -132,35 +154,54 @@ bool Trie::serialize(const char* fileName) {
 
 LinkedTrieNode* Trie::uint32ToNode(uint32_t input, TrieNode* node, LinkedTrieNode* tail) {
 	node->isLeaf = input & LEAF_BIT;
-	printf("Node mask: '%d.....", node->isLeaf ? 1 : 0);
+
+#if DEBUG
+	char logBuffer[59];
+	snprintf(logBuffer, 59, "Node mask: 'L...............................' (0x00000000)");
+	int cx = 12;	// "Node mask: '"
+	logBuffer[cx] = node->isLeaf ? '1' : '0';
+	cx += 6;	// leaf + '.....'
+#endif
 
 	// return if there are no children
 	if ((input & ~LEAF_BIT) == 0) {
-		printf("..........................' (0x%08x)\n", input);
+#if DEBUG
+		cx += 31;	// 26 chars + "' (0x"
+		snprintf(logBuffer + cx, 59 - cx, "%08x)", input);
+		LOG_DEBUG("%s", logBuffer);
+#endif
 		return tail;
 	}
 
 	uint32_t indexMask = MASK_A;
 	for (int i = 0; i < 26; i++, indexMask >>= 1) {
 		if (input & indexMask) {
-			printf("%c", indexToChar(i)); 
+#if DEBUG
+			logBuffer[cx] = indexToChar(i);
+#endif
 			node->children[i] = new TrieNode();
 			// add node to end of processing list
 			tail->next = new LinkedTrieNode();
 			tail = tail->next;
 			tail->node = node->children[i];
 			tail->next = NULL;
-		} else {
-			printf(".");
 		}
+#if DEBUG
+		cx++;
 	}
-	printf("' (0x%08x)\n", input);
+
+	cx += 5;	// "' (0x"
+	snprintf(logBuffer + cx, 59 - cx, "%08x)", input);
+	LOG_DEBUG("%s", logBuffer);
+#else
+	}
+#endif
 
 	return tail;
 }
 
 bool Trie::deserialize(const char* fileName) {
-	printf("Deserializing from trie file '%s'.\n", fileName);
+	LOG_INFO("Deserializing from trie file '%s'.", fileName);
 	int bufferSize = BUFFERMAX;
 	int bufferPos = bufferSize;
 	char buffer[BUFFERMAX] = {};
@@ -171,17 +212,16 @@ bool Trie::deserialize(const char* fileName) {
 
 	file.open(fileName, ios::in | ios::ate | ios::binary);
 	if (!file.is_open()) {
-		printf("Unable to open trie file for deserialization.\n");
+		LOG_INFO("Unable to open trie file for deserialization.");
 		return false;
 	}
 	if (file.tellg() == 0) {
-		printf("Trie file is empty.\n");
+		LOG_INFO("Trie file is empty.");
 		return false;
 	}
 	file.seekg(0);
 
 	LinkedTrieNode* head, * tail, * tmp;
-	TrieNode* newRoot = NULL;
 	uint32_t mask;
 	head = new LinkedTrieNode();
 	tail = head;
@@ -189,7 +229,7 @@ bool Trie::deserialize(const char* fileName) {
 
 	while ((bufferPos < bufferSize) || !file.eof()) {
 		if (head == NULL) {
-			printf("Trie corrupt: file is longer than node list.\n");
+			LOG_INFO("Trie corrupt: file is longer than node list.");
 			clearTrie();
 			return false;
 		}
@@ -210,17 +250,19 @@ bool Trie::deserialize(const char* fileName) {
 		tmp = head;
 		head = head->next;
 		delete tmp;
+		tmp = NULL;
 	}
 
 	if (head != NULL) {
-		printf("Trie corrupt: node list is longer than file.\n");
+		LOG_INFO("Trie corrupt: node list is longer than file.");
 
 		// clean up remaining nodes in processing list
 		do {
 			tmp = head;
 			head = head->next;
 			delete tmp;
-		} while (tmp != NULL);
+			tmp = NULL;
+		} while (head != NULL);
 		// clear partial trie
 		clearTrie();
 
@@ -245,11 +287,10 @@ bool Trie::trieCompare(Trie& trie) {
 	nodesInLevel = 1;
 
 	while ((head != NULL) && (staticHead != NULL)) {
-		printf("Processing level %d: '", level);
 		currentHead = head->node;
 		currentStaticHead = staticHead->node;
 		if (currentHead->isLeaf != currentStaticHead->isLeaf) {
-			printf("currentHead->isLeaf = %s and currentStaticHead->isLeaf = %s.\n",
+			LOG_DEBUG("currentHead->isLeaf = %s and currentStaticHead->isLeaf = %s.",
 				currentHead->isLeaf ? "TRUE" : "FALSE",
 				currentStaticHead->isLeaf ? "TRUE" : "FALSE");
 
@@ -258,21 +299,19 @@ bool Trie::trieCompare(Trie& trie) {
 				tmpHead = head;
 				head = head->next;
 				delete tmpHead;
-			} while (tmpHead != NULL);
+			} while (head != NULL);
 			do {
 				tmpHead = staticHead;
 				staticHead = staticHead->next;
 				delete tmpHead;
-			} while (tmpHead != NULL);
+			} while (staticHead != NULL);
 
 			return false;
 		}
 
-		printf("%d.....", currentHead->isLeaf ? 1 : 0);
-
 		for (int i = 0; i < 26; i++) {
 			if ((currentHead->children[i] == NULL) ^ (currentStaticHead->children[i] == NULL)) {
-				printf("Only %s has child %c.\n", currentHead->children[i] ? "currentHead" : "currentStaticHead", indexToChar(i));
+				LOG_DEBUG("Only %s has child %c.", currentHead->children[i] ? "currentHead" : "currentStaticHead", indexToChar(i));
 				return false;
 			}
 			if (currentHead->children[i]) {
@@ -288,22 +327,19 @@ bool Trie::trieCompare(Trie& trie) {
 				staticTail->next = NULL;
 
 				nodesInNextLevel++;
-				printf("%c", indexToChar(i));
-			} else {
-				printf(".");
 			}
 		}
-
-		printf("'\n");
 
 		// advance processing lists
 		tmpHead = head;
 		head = head->next;
 		delete tmpHead;
+		tmpHead = NULL;
 
 		tmpHead = staticHead;
 		staticHead = staticHead->next;
 		delete tmpHead;
+		tmpHead = NULL;
 
 		nodesInLevel--;
 		if (nodesInLevel == 0) {
@@ -329,6 +365,9 @@ TrieInfo Trie::getTrieInfo() {
 TrieInfo Trie::getTrieNodeInfo(TrieNode* node) {
 	TrieInfo info = TrieInfo();
 	info.trieSize += sizeof(*node);
+#if DEBUG
+	info.trieSize -= sizeof(node->id);
+#endif
 	if (node->isLeaf) { info.wordCount++; }
 
 	for (int i = 0; i < 26; i++) {

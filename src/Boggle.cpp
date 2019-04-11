@@ -17,6 +17,7 @@ using std::list;
 
 Boggle::Boggle() {
 	dictionary = Trie();
+	dictionary.clearTrie();
 	words = list<string>();
 	clearBoard();
 	clearVisited();
@@ -137,7 +138,7 @@ void Boggle::loadBoard() {
 void Boggle::loadDict() {
 	bool ret = dictionary.deserialize(TRIE_FILE);
 	if (!ret) {
-		printf("Trie deserializion failed. Loading trie from dictionary.\n");
+		LOG_INFO("Trie deserializion failed. Loading trie from dictionary.");
 		string word;
 		ifstream file;
 		file.open(DICT_FILE);

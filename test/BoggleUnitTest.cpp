@@ -5,7 +5,9 @@
 #include <string>
 
 #include "Boggle.h"
+#include "Logger.h"
 
+#define TEST_LOG "BoggleUnitTest.log"
 #define TEST_TRIE "TestSerializer.trie"
 #define TEST_STATICTRIE "TestSerializerStatic.trie"
 #define TEST_LETTERCOUNT 22u
@@ -54,8 +56,6 @@ static uint32_t fileUints[TEST_NODECOUNT] = {
 	0x00200000,	// 0E
 	0x80000000	// 1
 };
-// deserializer nodes to add
-
 
 // test function forward declarations
 bool testSerializer(const char* testFileName, const char* testStaticFileName);
@@ -63,23 +63,29 @@ bool testDeserializer(const char* testFileName);
 bool testTrieInfo();
 
 int main(int argc, char** argv) {
-	printf("Testing serializer\n");
+	Logger::Instance()->openLogFile(TEST_LOG, true);
+
+	LOG_INFO("Testing serializer");
 	bool ret = testSerializer(TEST_TRIE, TEST_STATICTRIE);
-	printf("Serializer test: %s\n", ret ? "PASS" : "FAIL");
+	LOG_INFO("Serializer test: %s", ret ? "PASS" : "FAIL");
 
-	printf("\nTesting deserializer\n");
+	LOG_INFO("Testing deserializer");
 	ret = testDeserializer(TEST_STATICTRIE);
-	printf("Deserializer test: %s\n", ret ? "PASS" : "FAIL");
+	LOG_INFO("Deserializer test: %s", ret ? "PASS" : "FAIL");
 
-	printf("\nTesting trie info\n");
+	LOG_INFO("Testing trie info");
 	ret = testTrieInfo();
-	printf("Trie info test: %s\n", ret ? "PASS" : "FAIL");
+	LOG_INFO("Trie info test: %s", ret ? "PASS" : "FAIL");
 
 	Boggle boggle = Boggle();
 	TrieInfo info = boggle.getTrieInfo();
-	printf("\nBoggle dictionary trie:\n    Word count = %lu\n    Letter count = %lu\n    Trie size (bytes) = %lu B\n", info.wordCount, info.letterCount, info.trieSize);
+	LOG_INFO("Boggle dictionary word count = %lu", info.wordCount);
+	LOG_INFO("Boggle dictionary letter count = %lu", info.letterCount);
+	LOG_INFO("Boggle dictionary trie size (bytes) = %lu B", info.trieSize);
 	/*boggle.newGame();
 	boggle.printBoard(std::cout);*/
+
+	Logger::Instance()->closeLogFile();
 }
 
 bool testSerializer(const char* testFileName, const char* testStaticFileName) {
@@ -113,7 +119,7 @@ bool testSerializer(const char* testFileName, const char* testStaticFileName) {
 	if (fileTrie.tellg() != fileStaticTrie.tellg()) {
 		fileTrie.close();
 		fileStaticTrie.close();
-		printf("testSerializer: file sizes do not match\n");
+		LOG_DEBUG("testSerializer: file sizes do not match");
 		return false;
 	}
 
@@ -168,11 +174,11 @@ bool testTrieInfo() {
 
 	TrieInfo info = testStaticTrie.getTrieInfo();
 	if (TEST_LETTERCOUNT != info.letterCount) { ret = false; }
-	printf("Trie letter count: expected = %u, actual = %lu\n", TEST_LETTERCOUNT, info.letterCount);
+	LOG_INFO("Trie letter count: expected = %u, actual = %lu", TEST_LETTERCOUNT, info.letterCount);
 	if (TEST_WORDCOUNT != info.wordCount) { ret = false; }
-	printf("Trie word count: expected = %u, actual = %lu\n", TEST_WORDCOUNT, info.wordCount);
+	LOG_INFO("Trie word count: expected = %u, actual = %lu", TEST_WORDCOUNT, info.wordCount);
 	if (TEST_TRIESIZEBYTES != info.trieSize) { ret = false; }
-	printf("Trie size: expected = %u B, actual = %lu B\n", TEST_TRIESIZEBYTES, info.trieSize);
+	LOG_INFO("Trie size: expected = %u B, actual = %lu B", TEST_TRIESIZEBYTES, info.trieSize);
 
 	return ret;
 }

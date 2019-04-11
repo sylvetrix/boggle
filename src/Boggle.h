@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 
+#include "Logger.h"
 #include "Trie.h"
 
 class Boggle {

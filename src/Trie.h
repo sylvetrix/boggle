@@ -5,6 +5,8 @@
 #include <fstream>
 #include <string>
 
+#include "Logger.h"
+
 #define charToIndex(c) ((int)c - (int)'A')
 #define indexToChar(i) ((char)i + (char)'A')
 
@@ -13,6 +15,10 @@ using std::ofstream;
 using std::string;
 
 struct TrieNode {
+#if DEBUG
+	uint64_t id;
+	static uint64_t createTrieNodeId() { static uint64_t nextId = 0; return nextId++; }
+#endif
 	TrieNode* children[26];
 	bool isLeaf;
 
