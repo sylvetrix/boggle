@@ -17,7 +17,6 @@ using std::list;
 
 Boggle::Boggle() {
 	dictionary = Trie();
-	dictionary.clearTrie();
 	words = list<string>();
 	clearBoard();
 	clearVisited();

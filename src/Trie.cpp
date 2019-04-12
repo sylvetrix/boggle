@@ -31,24 +31,27 @@ TrieNode::~TrieNode() {
 }
 
 Trie::Trie() {
-	root = new TrieNode();
+#if DEBUG
+	id = createTrieId();
+	LOG_DEBUG("Constructing Trie [%lu]", this->id);
+#endif
+	root = TrieNode();
 }
 
 Trie::~Trie() {
-	delete root;
-	root = NULL;
+	LOG_DEBUG("Destructing Trie [%lu]", this->id);
 }
 
 TrieNode* Trie::getRoot() {
-	return root;
+	return &root;
 }
 
 void Trie::clearTrie() {
-	root = new TrieNode();
+	root = TrieNode();
 }
 
 void Trie::insert(const char* key, int len) {
-	TrieNode* child = root;
+	TrieNode* child = getRoot();
 
 	for (int i = 0; i < len; i++) {
 		int index = charToIndex(key[i]);
@@ -121,7 +124,7 @@ bool Trie::serialize(const char* fileName) {
 	uint32_t mask;
 	head = new LinkedTrieNode();
 	tail = head;
-	head->node = root;
+	head->node = getRoot();
 
 	while (head != NULL) {
 		tail = nodeToUint32(mask, head->node, tail);
@@ -224,7 +227,7 @@ bool Trie::deserialize(const char* fileName) {
 	uint32_t mask;
 	head = new LinkedTrieNode();
 	tail = head;
-	head->node = root;
+	head->node = getRoot();
 
 	while ((bufferPos < bufferSize) || !file.eof()) {
 		if (head == NULL) {
@@ -276,7 +279,7 @@ bool Trie::trieCompare(Trie& trie) {
 	TrieNode* currentHead, * currentStaticHead;
 	LinkedTrieNode* head, * staticHead, * tail, * staticTail, * tmpHead;
 	head = new LinkedTrieNode();
-	head->node = root;
+	head->node = getRoot();
 	head->next = NULL;
 	tail = head;
 	staticHead = new LinkedTrieNode();
@@ -354,9 +357,17 @@ bool Trie::trieCompare(Trie& trie) {
 TrieInfo Trie::getTrieInfo() {
 	TrieInfo info = TrieInfo();
 	info.trieSize += sizeof(*this);
-	if (root == NULL) { return info; }
+#if DEBUG
+	info.trieSize -= sizeof(id);
+	info.trieSize -= sizeof(root.id);
+#endif
 
-	info += getTrieNodeInfo(root);
+	for (int i = 0; i < 26; i++) {
+		if (root.children[i] != NULL) {
+			info.letterCount++;
+			info += getTrieNodeInfo(root.children[i]);
+		}
+	}
 
 	return info;
 }

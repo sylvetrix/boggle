@@ -17,7 +17,7 @@ using std::string;
 struct TrieNode {
 #if DEBUG
 	uint64_t id;
-	static uint64_t createTrieNodeId() { static uint64_t nextId = 0; return nextId++; }
+	static uint64_t createTrieNodeId() { static uint64_t nextTNId = 0; return nextTNId++; }
 #endif
 	TrieNode* children[26];
 	bool isLeaf;
@@ -66,7 +66,11 @@ class Trie {
 		TrieInfo getTrieInfo();
 
 	private:
-		TrieNode* root;
+#if DEBUG
+		uint64_t id;
+		static uint64_t createTrieId() { static uint64_t nextTId = 0; return nextTId++; }
+#endif
+		TrieNode root;
 
 		TrieInfo getTrieNodeInfo(TrieNode* node);
 		static LinkedTrieNode* nodeToUint32(uint32_t& output, TrieNode* node, LinkedTrieNode* tail);
