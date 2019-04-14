@@ -1,4 +1,5 @@
 #include <cinttypes>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -7,6 +8,9 @@
 #include "Boggle.h"
 #include "Logger.h"
 
+#define DICTFILE "BoggleWords.dict"
+#define TEST_DICTFILE "TestBoggleWords.dict"
+#define TEST_DICTTRIE "TestBoggleWords.trie"
 #define TEST_LOG "BoggleUnitTest.log"
 #define TEST_TRIE "TestSerializer.trie"
 #define TEST_STATICTRIE "TestSerializerStatic.trie"
@@ -57,35 +61,160 @@ static uint32_t fileUints[TEST_NODECOUNT] = {
 	0x80000000	// 1
 };
 
-// test function forward declarations
+// helper functions
+bool compareDictFiles(const char* fileName, const char* testFileName);
+bool loadTrie(Trie& dictTrie, char const* fileName);
+void removeTestFiles();
+void writeWord(TrieNode* node, ofstream& file, string word);
+
+// test functions
+void runGame();
 bool testSerializer(const char* testFileName, const char* testStaticFileName);
 bool testDeserializer(const char* testFileName);
 bool testTrieInfo();
+bool testTrieFromDict(const char* dictFileName, const char* testDictFileName);
+bool testTrieFromFile(const char* dictFileName, const char* testDictFileName, const char* testTrieFileName);
 
 int main(int argc, char** argv) {
 	Logger::Instance()->openLogFile(TEST_LOG, true);
+
+	removeTestFiles();
 
 	LOG_INFO("Testing serializer");
 	bool ret = testSerializer(TEST_TRIE, TEST_STATICTRIE);
 	LOG_INFO("Serializer test: %s", ret ? "PASS" : "FAIL");
 
 	LOG_INFO("Testing deserializer");
-	ret = testDeserializer(TEST_STATICTRIE);
+	if (!ret) {
+		LOG_INFO("%s", "Serializer test failed, no file to deserialize");
+	} else {
+		ret = testDeserializer(TEST_STATICTRIE);
+	}
 	LOG_INFO("Deserializer test: %s", ret ? "PASS" : "FAIL");
+
+	removeTestFiles();
 
 	LOG_INFO("Testing trie info");
 	ret = testTrieInfo();
 	LOG_INFO("Trie info test: %s", ret ? "PASS" : "FAIL");
 
+	LOG_INFO("Testing trie built from dict");
+	ret = testTrieFromDict(DICTFILE, TEST_DICTFILE);
+	LOG_INFO("Trie from dict test: %s", ret ? "PASS" : "FAIL");
+
+	removeTestFiles();
+
+	LOG_INFO("Testing trie built from file");
+	ret = testTrieFromFile(DICTFILE, TEST_DICTFILE, TEST_DICTTRIE);
+	LOG_INFO("Trie from file test: %s", ret ? "PASS" : "FAIL");
+
+	removeTestFiles();
+
+	//runGame();
+
+	Logger::Instance()->closeLogFile();
+}
+
+/***********
+ * Helpers *
+ ***********/
+
+bool compareDictFiles(const char* fileName, const char* testFileName) {
+	ifstream fileIn, testFileIn;
+
+	fileIn.open(fileName);
+	if (!fileIn.is_open()) {
+		LOG_INFO("Unable to open file '%s'", fileName);
+		return false;
+	}
+
+	testFileIn.open(testFileName);
+	if (!testFileIn.is_open()) {
+		LOG_INFO("Unable to open file '%s'", testFileName);
+		return false;
+	}
+
+	bool fileInRead = false, testFileInRead = false;
+	string word = "", testWord = "";
+	int line = 1;
+	while (true) {
+		fileInRead = getline(fileIn, word).good();
+		testFileInRead = getline(testFileIn, testWord).good();
+		if (!fileInRead && testFileInRead) {
+			LOG_INFO("'%s' contains more words than '%s'", testFileName, fileName);
+			return false;
+		}
+		if (fileInRead && !testFileInRead) {
+			LOG_INFO("'%s' contains more words than '%s'", fileName, testFileName);
+			return false;
+		}
+
+		if (word.compare(testWord) != 0) {
+			LOG_INFO("Line '%d': Word = '%s', testWord = '%s'", line, word.c_str(), testWord.c_str());
+			return false;
+		}
+
+		if (fileIn.eof() && testFileIn.eof()) {
+			break;
+		}
+		line++;
+	}
+
+	return true;
+}
+
+bool loadTrie(Trie& dictTrie, char const* fileName) {
+	dictTrie = Trie();
+	ifstream fileIn;
+	ofstream fileOut;
+	fileIn.open(DICTFILE);
+	if (fileIn.is_open()) {
+		string word;
+		while (getline(fileIn, word)) {
+			dictTrie.insert(word.c_str(), word.length());
+		}
+		fileIn.close();
+	} else {
+		LOG_INFO("Unable to open file '%s'", DICTFILE);
+		return false;
+	}
+
+	return true;
+}
+
+void removeTestFiles() {
+	remove(TEST_DICTFILE);
+	remove(TEST_DICTTRIE);
+	remove(TEST_TRIE);
+	remove(TEST_STATICTRIE);
+}
+
+void writeWord(TrieNode* node, ofstream& file, string word) {
+	if (node == NULL) {
+		return;
+	}
+
+	if (node->isLeaf) {
+		file << word << std::endl;
+	}
+	for (int i = 0; i < 26; i++) {
+		char index = indexToChar(i);
+		writeWord(node->children[i], file, word + index);
+	}
+}
+
+/*********
+ * Tests *
+ *********/
+
+void runGame() {
 	Boggle boggle = Boggle();
 	TrieInfo info = boggle.getTrieInfo();
 	LOG_INFO("Boggle dictionary word count = %lu", info.wordCount);
 	LOG_INFO("Boggle dictionary letter count = %lu", info.letterCount);
 	LOG_INFO("Boggle dictionary trie size (bytes) = %lu B", info.trieSize);
-	/*boggle.newGame();
-	boggle.printBoard(std::cout);*/
 
-	Logger::Instance()->closeLogFile();
+	boggle.solveGame(std::cout);
 }
 
 bool testSerializer(const char* testFileName, const char* testStaticFileName) {
@@ -158,7 +287,9 @@ bool testDeserializer(const char* testStaticFileName) {
 
 	// deserialize trie from file
 	Trie testTrie = Trie();
-	if (!testTrie.deserialize(testStaticFileName)) { return false; }
+	if (!testTrie.deserialize(testStaticFileName)) {
+		return false;
+	}
 
 	return testTrie.trieCompare(testStaticTrie);
 }
@@ -181,4 +312,60 @@ bool testTrieInfo() {
 	LOG_INFO("Trie size: expected = %u B, actual = %lu B", TEST_TRIESIZEBYTES, info.trieSize);
 
 	return ret;
+}
+
+bool testTrieFromDict(const char* dictFileName, const char* testDictFileName) {
+	Trie dictTrie;
+	if (!loadTrie(dictTrie, dictFileName)) {
+		return false;
+	}
+
+	ofstream fileOut;
+	fileOut.open(testDictFileName);
+	if (fileOut.is_open()) {
+		TrieNode* root = dictTrie.getRoot();
+		string word = "";
+		for (int i = 0; i < 26; i++) {
+			char index = indexToChar(i);
+			writeWord(root->children[i], fileOut, word + index);
+		}
+		fileOut.close();
+	} else {
+		LOG_INFO("Unable to open file '%s'", testDictFileName);
+		return false;
+	}
+
+	return compareDictFiles(dictFileName, testDictFileName);
+}
+
+bool testTrieFromFile(const char* dictFileName, const char* testDictFileName, const char* testTrieFileName) {
+	Trie dictTrie;
+	if (!loadTrie(dictTrie, dictFileName)) {
+		return false;
+	}
+
+	if (!dictTrie.serialize(testTrieFileName)) {
+		return false;
+	}
+
+	if (!dictTrie.deserialize(testTrieFileName)) {
+		return false;
+	}
+
+	ofstream fileOut;
+	fileOut.open(testDictFileName);
+	if (fileOut.is_open()) {
+		TrieNode* root = dictTrie.getRoot();
+		string word = "";
+		for (int i = 0; i < 26; i++) {
+			char index = indexToChar(i);
+			writeWord(root->children[i], fileOut, word + index);
+		}
+		fileOut.close();
+	} else {
+		LOG_INFO("Unable to open file '%s'", testDictFileName);
+		return false;
+	}
+
+	return compareDictFiles(dictFileName, testDictFileName);
 }

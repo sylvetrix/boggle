@@ -203,3 +203,10 @@ void Boggle::searchWord(TrieNode* root, int i, int j, string str) {
 		visited[i][j] = false;
  	}
 }
+
+void Boggle::solveGame(std::ostream& stream) {
+	newGame();
+	printBoard(stream);
+	findWords();
+	printBoard(stream);
+}

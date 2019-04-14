@@ -14,6 +14,7 @@ class Boggle {
 		~Boggle();
 		void newGame();
 		void printBoard(std::ostream&);
+		void solveGame(std::ostream&);
 		TrieInfo getTrieInfo() { return dictionary.getTrieInfo(); }
 
 	private:
