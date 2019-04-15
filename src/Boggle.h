@@ -13,8 +13,8 @@ class Boggle {
 		Boggle();
 		~Boggle();
 		void newGame();
-		void printBoard(std::ostream&);
-		void solveGame(std::ostream&);
+		void printBoard(std::ostream& stream);
+		void solveGame(std::ostream& stream);
 		TrieInfo getTrieInfo() { return dictionary.getTrieInfo(); }
 
 	private:

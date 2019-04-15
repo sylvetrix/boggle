@@ -29,6 +29,7 @@ class Logger {
 #define LOG_FILE	"Logger.log"
 #define LOG_FMT		"%s | %-5s | %s:%d | "
 #define LOG_ARGS(LOG_TAG) currentTime(), LOG_TAG, _FILE, __LINE__
+#define INDENT_FMT	"%*s"
 
 #if DEBUG
 #define LOG_DEBUG(message, args...)														\
@@ -39,17 +40,21 @@ class Logger {
 #define LOG_DEBUG(message, args...)
 #endif
 
-#define LOG_INFO(message, args...)														\
+#define LOG_INFO_INDENT(indent, message, args...)										\
 	do {																				\
 		Logger::Instance()->log(LOG_FMT message NEWLINE, LOG_ARGS("INFO"), ## args);	\
-		fprintf(stdout, message NEWLINE, ## args);										\
+		fprintf(stdout, INDENT_FMT message NEWLINE, (indent * 4), "", ## args);			\
 	} while(0)
 
-#define LOG_ERROR(message, args...)														\
+#define LOG_INFO(message, args...) LOG_INFO_INDENT(0, message, ## args)
+
+#define LOG_ERROR_INDENT(indent, message, args...)										\
 	do {																				\
 		Logger::Instance()->log(LOG_FMT message NEWLINE, LOG_ARGS("ERROR"), ## args);	\
-		fprintf(stderr, message NEWLINE, ## args);										\
+		fprintf(stderr, INDENT_FMT message NEWLINE, (indent * 4), "", ## args);			\
 	} while(0)
+
+#define LOG_ERROR(message, args...) LOG_ERROR_INDENT(0, message, ## args)
 
 static inline char *currentTime() {
 	static char buffer[64];
