@@ -65,14 +65,31 @@ void Boggle::findWords() {
 	words.unique();
 	list<string>::const_iterator iterator, end;
 	int points = 0;
+	int wordCounts[24] = { };
 	for (iterator = words.begin(), end = words.end(); iterator != end; iterator++) {
 		std::cout << *iterator << std::endl;
+		int len = (*iterator).length();
+		if (len < 4) {
+			printf("Word '%s' is not long enough\n", (*iterator).c_str());
+			continue;
+		}
+		if (len > 27) {
+			printf("Word '%s' is too long for board\n", (*iterator).c_str());
+			continue;
+		}
+		wordCounts[len - 4]++;
 		switch ((*iterator).length()) {
 			case 4: points += 1; break;
 			case 5: points += 2; break;
 			case 6: points += 3; break;
 			case 7: points += 5; break;
 			default: points += 11; break;
+		}
+	}
+
+	for (int i = 0; i < 24; i++) {
+		if (wordCounts[i] > 0) {
+			printf("%d-letter words: %d\n", i + 4, wordCounts[i]);
 		}
 	}
 	printf("Total points: %d\n", points);
@@ -173,7 +190,7 @@ void Boggle::printBoard(std::ostream& stream) {
 }
 
 void Boggle::searchWord(TrieNode* root, int i, int j, string str) {
-	if ((root->isLeaf = true) && (str.length() >= 4)) {
+	if ((root->isLeaf == true) && (str.length() >= 4)) {
 		words.push_back(str);
 	}
 

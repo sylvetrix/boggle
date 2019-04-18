@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 
 	removeTestFiles();
 
-	//runGame();
+	runGame();
 
 	Logger::Instance()->closeLogFile();
 }
@@ -214,6 +214,7 @@ void runGame() {
 	LOG_INFO("Boggle dictionary letter count = %lu", info.letterCount);
 	LOG_INFO("Boggle dictionary trie size (bytes) = %lu B", info.trieSize);
 
+	LOG_INFO("Solving game");
 	boggle.solveGame(std::cout);
 }
 
