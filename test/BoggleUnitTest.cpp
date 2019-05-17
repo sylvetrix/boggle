@@ -68,12 +68,15 @@ void removeTestFiles();
 void writeWord(TrieNode* node, ofstream& file, string word);
 
 // test functions
-void runGame();
 bool testSerializer(const char* testFileName, const char* testStaticFileName);
 bool testDeserializer(const char* testFileName);
 bool testTrieInfo();
 bool testTrieFromDict(const char* dictFileName, const char* testDictFileName);
 bool testTrieFromFile(const char* dictFileName, const char* testDictFileName, const char* testTrieFileName);
+
+// analytics
+void runAnalytics();
+void computeSparseness(Trie& dict);
 
 int main(int argc, char** argv) {
 	Logger::Instance()->openLogFile(TEST_LOG, true);
@@ -109,8 +112,6 @@ int main(int argc, char** argv) {
 	LOG_INFO("Trie from file test: %s", ret ? "PASS" : "FAIL");
 
 	removeTestFiles();
-
-	runGame();
 
 	Logger::Instance()->closeLogFile();
 }
@@ -206,17 +207,6 @@ void writeWord(TrieNode* node, ofstream& file, string word) {
 /*********
  * Tests *
  *********/
-
-void runGame() {
-	Boggle boggle = Boggle();
-	TrieInfo info = boggle.getTrieInfo();
-	LOG_INFO("Boggle dictionary word count = %lu", info.wordCount);
-	LOG_INFO("Boggle dictionary letter count = %lu", info.letterCount);
-	LOG_INFO("Boggle dictionary trie size (bytes) = %lu B", info.trieSize);
-
-	LOG_INFO("Solving game");
-	boggle.solveGame(std::cout);
-}
 
 bool testSerializer(const char* testFileName, const char* testStaticFileName) {
 	char buffer[BUFFERSIZE];
