@@ -1,8 +1,9 @@
-Build:
+#!/bin/bash
+# Build:
 mkdir -p bin
 cp -n dict/BoggleWords.dict bin/
 g++ -o BoggleMain -Iinclude/ src/*
 
-Run:
+# Run:
 cd bin
 ./BoggleMain
